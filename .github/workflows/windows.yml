@@ -7,6 +7,9 @@ on:
         type: boolean
         required: true
         default: false
+  push:
+    branches: [main]
+    paths: ['.github/workflows/windows.yml']
   pull_request:
 permissions:
   contents: read
@@ -42,49 +45,14 @@ jobs:
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: npm run dist:win
-      - name: Test packaged desktop and silent installation
+      - name: Test packaged startup and installer
         shell: pwsh
-        run: |
-          $env:CALFIN_TEST_HOME = Join-Path $env:GITHUB_WORKSPACE '.test-state/unpacked-user'
-          $p = Start-Process -FilePath 'dist/win-unpacked/Business Calfin.exe' -ArgumentList '--smoke-test' -Wait -PassThru
-          if ($p.ExitCode -ne 0) { throw "Packaged startup failed: $($p.ExitCode)" }
-          $installDir = Join-Path $env:GITHUB_WORKSPACE '.test-state/installed'
-          $setup = (Get-ChildItem dist/*Setup.exe | Select-Object -First 1).FullName
-          $p = Start-Process -FilePath $setup -ArgumentList '/S',"/D=$installDir" -Wait -PassThru
-          if ($p.ExitCode -ne 0) { throw "Installer failed: $($p.ExitCode)" }
-          $env:CALFIN_TEST_HOME = Join-Path $env:GITHUB_WORKSPACE '.test-state/installed-user'
-          $p = Start-Process -FilePath (Join-Path $installDir 'Business Calfin.exe') -ArgumentList '--smoke-test' -Wait -PassThru
-          if ($p.ExitCode -ne 0) { throw "Installed startup failed: $($p.ExitCode)" }
-          if (!(Test-Path (Join-Path $env:CALFIN_TEST_HOME 'smoke-result.json'))) { throw 'Missing native verification' }
-          $p = Start-Process -FilePath (Join-Path $installDir 'Uninstall Business Calfin.exe') -ArgumentList '/S' -Wait -PassThru
-          if ($p.ExitCode -ne 0) { throw "Uninstaller failed: $($p.ExitCode)" }
-      - name: Create verification and checksums
-        shell: pwsh
-        run: |
-          node scripts/checksums.cjs
-          node -e "const fs=require('fs'),os=require('os');fs.writeFileSync('dist/verification.json',JSON.stringify({version:require('./package.json').version,platform:process.platform,os:os.release(),windowsPackagedStartup:true,windowsInstallStartupAndUninstall:true,unitTestsPassed:true,decimal:JSON.parse(fs.readFileSync('.artifacts/decimal-report.json')),browser:JSON.parse(fs.readFileSync('.artifacts/browser-report.json')),unsigned:true},null,2));"
-      - name: Preserve first dependency lock
-        if: github.event_name == 'workflow_dispatch' && inputs.publish
-        shell: pwsh
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add package-lock.json
-          git diff --cached --quiet
-          if ($LASTEXITCODE -eq 1) {
-            git commit -m 'Lock dependencies verified by Windows build'
-            git push origin HEAD:main
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          }
-          exit 0
-      - name: Publish verified installer
-        if: github.event_name == 'workflow_dispatch' && inputs.publish
+        run: ./scripts/windows-test.ps1
+      - name: Record verification and checksums
+        run: node scripts/verification.cjs
+      - name: Publish only an explicitly approved release
+        if: (github.event_name == 'workflow_dispatch' && inputs.publish) || (github.event_name == 'push' && contains(github.event.head_commit.message, 'release-approved: v0.1.0'))
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
-        run: |
-          $version = node -p "require('./package.json').version"
-          $sha = git rev-parse HEAD
-          $files = @(Get-ChildItem dist/*Setup.exe | ForEach-Object { $_.FullName }) + @('dist/SHA256SUMS.txt','dist/verification.json')
-          gh release create "v$version" @files --target $sha --title "Business Calfin $version - Windows x64" --notes 'MIT local-first pricing tool. Unsigned Windows x64 installer. Financial, browser, packaged startup, silent installation and uninstall checks passed on Windows Server 2022 CI. See verification.json and SHA256SUMS.txt. Not a manual compatibility test on every Windows 10/11 device. No private company data included; no financial or tax guarantees.'
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        run: ./scripts/release.ps1
