@@ -48,7 +48,7 @@ jobs:
       - name: Test packaged startup and installer
         shell: pwsh
         run: ./scripts/windows-test.ps1
-       - name: Record verification and checksums
+      - name: Record verification and checksums
         run: node scripts/verification.cjs
       - name: Publish only an explicitly approved release
         if: >-
