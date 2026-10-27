@@ -1,4 +1,4 @@
-name: Verify source without publishing installers
+name: Verify source with no installer release
 on:
   push:
     branches: [main]

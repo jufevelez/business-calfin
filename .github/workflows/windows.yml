@@ -7,14 +7,11 @@ on:
         type: boolean
         required: true
         default: false
-  push:
-    branches: [main]
-    paths: ['.github/workflows/windows.yml']
-  pull_request:
 permissions:
   contents: read
 jobs:
   windows:
+    if: vars.CALFIN_SIGNING_READY == 'true'
     runs-on: windows-2022
     timeout-minutes: 25
     permissions:
@@ -41,9 +38,12 @@ jobs:
         run: npx playwright install chromium
       - name: Browser and privacy tests
         run: npm run test:browser
-      - name: Build unsigned Windows installer
+      - name: Consent and printed report tests
+        run: npm run test:extensions
+      - name: Build Windows installer with mandatory code signing
         env:
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
         run: npm run dist:win
       - name: Test packaged startup and installer
         shell: pwsh
@@ -52,8 +52,9 @@ jobs:
         run: node scripts/verification.cjs
       - name: Publish only an explicitly approved release
         if: >-
-          (github.event_name == 'workflow_dispatch' && inputs.publish) || (github.event_name == 'push' && contains(github.event.head_commit.message, 'release-approved: v0.1.0'))
+          github.event_name == 'workflow_dispatch' && inputs.publish
         env:
           GH_TOKEN: ${{ github.token }}
+          CALFIN_EXPECTED_SIGNER: ${{ vars.CALFIN_EXPECTED_SIGNER }}
         shell: pwsh
         run: ./scripts/release.ps1
