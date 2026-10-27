@@ -48,10 +48,11 @@ jobs:
       - name: Test packaged startup and installer
         shell: pwsh
         run: ./scripts/windows-test.ps1
-      - name: Record verification and checksums
+       - name: Record verification and checksums
         run: node scripts/verification.cjs
       - name: Publish only an explicitly approved release
-        if: (github.event_name == 'workflow_dispatch' && inputs.publish) || (github.event_name == 'push' && contains(github.event.head_commit.message, 'release-approved: v0.1.0'))
+        if: >-
+          (github.event_name == 'workflow_dispatch' && inputs.publish) || (github.event_name == 'push' && contains(github.event.head_commit.message, 'release-approved: v0.1.0'))
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
