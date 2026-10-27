@@ -1,0 +1,20 @@
+.report-stamp{display:none}
+@media print{
+ @page{size:A4 landscape;margin:12mm}
+ .report-stamp{display:block;border:1px solid #8b9d91;padding:10px 12px;margin:12px 0 16px;break-inside:avoid;font-size:10px;overflow-wrap:anywhere}
+ .report-stamp p{margin:3px 0}
+ .report-stamp strong{color:#16382f}
+ #banner{break-inside:avoid}
+ #results .panel{break-inside:auto}
+ #results table{table-layout:fixed;width:100%;font-size:9px}
+ #results th,#results td{white-space:normal;overflow-wrap:anywhere;padding:5px 4px}
+ #results thead{display:table-header-group}
+ #results tr{break-inside:avoid}
+ #results .scroll{overflow:visible}
+ .bars{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+
+.ai-panel pre{max-height:330px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:14px;background:#f2f5ef;font-size:11px}
+.ai-panel a{overflow-wrap:anywhere}
+.ai-panel[hidden],.ai-panel [hidden]{display:none!important}
+@media print{.ai-controls,.ai-library{display:none!important}.ai-panel{break-inside:auto}.ai-panel a{font-size:8px}}

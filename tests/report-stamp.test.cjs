@@ -1,0 +1,14 @@
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict');
+const {buildStamp}=require('../src/report-stamp.js');
+const date=new Date('2026-10-27T19:23:45.123Z');
+const make=extra=>buildStamp({now:date,timeZone:'America/Bogota',company:'Empresa de ejemplo',report:'Resultado mensual',period:'2026-10',version:'v0.1.1',saveStatus:'Cambios sin guardar',...extra});
+test('Report has exact UTC timestamp including milliseconds',()=>assert.equal(make().emittedAt,'2026-10-27T19:23:45.123Z'));
+test('Report names the timezone and converts the local hour',()=>{const r=make();assert.equal(r.timeZone,'America/Bogota');assert.match(r.lines.find(x=>x[0]==='Emitido el')[1],/14:23:45.*America\/Bogota/);});
+test('Timezone can change the calendar day without changing the UTC instant',()=>{const r=make({now:new Date('2026-10-27T02:03:04Z')});assert.match(r.lines.find(x=>x[0]==='Emitido el')[1],/26\/10\/2026.*21:03:04/);assert.equal(r.emittedAt,'2026-10-27T02:03:04.000Z');});
+test('Company, report, period and version accompany every timestamp',()=>{const r=Object.fromEntries(make().lines);assert.equal(r.Empresa,'Empresa de ejemplo');assert.equal(r.Reporte,'Resultado mensual');assert.equal(r['Período / alcance'],'2026-10');assert.equal(r['Aplicación'],'Business Calfin v0.1.1');});
+test('Unsaved data remains explicit on the printout',()=>assert.equal(Object.fromEntries(make().lines)['Estado del guardado'],'Cambios sin guardar'));
+test('The report timestamp never claims a certified or audited result',()=>assert.match(Object.fromEntries(make().lines)['Origen del sello'],/No es un sello de tiempo certificado/));
+test('A new issuance gets its own timestamp',()=>assert.notEqual(make().emittedAt,make({now:new Date(date.getTime()+1000)}).emittedAt));
+test('Invalid issuance dates are rejected',()=>assert.throws(()=>make({now:new Date('bad')}),/inválida/));
+test('Metadata generation does not mutate inputs',()=>{const n=date.getTime();make();assert.equal(date.getTime(),n);});

@@ -1,5 +1,6 @@
 'use strict';
-const {app,BrowserWindow,ipcMain,dialog,session}=require('electron');
+const {app,BrowserWindow,ipcMain,dialog,session,safeStorage}=require('electron');
+const {createAIService}=require('./ai-service.cjs');
 const fs=require('node:fs/promises'),path=require('node:path'),{pathToFileURL}=require('node:url');
 const E=require('../src/engine.js');
 let window;const smoke=process.argv.includes('--smoke-test');
@@ -18,6 +19,8 @@ app.whenReady().then(async()=>{
  window.setMenuBarVisibility(false);window.webContents.setWindowOpenHandler(()=>({action:'deny'}));window.webContents.on('will-navigate',(e,url)=>{if(url!==trustedURL)e.preventDefault();});window.webContents.on('will-prevent-unload',e=>{if(dialog.showMessageBoxSync(window,{type:'question',buttons:['Continuar trabajando','Salir sin guardar'],defaultId:0,cancelId:0,message:'Hay cambios sin guardar. ¿Quieres salir?'})===1)e.preventDefault();});
  const handle=(name,fn)=>ipcMain.handle(name,async(event,...args)=>{authorize(event);return fn(...args);});
  handle('calfin:load',load);handle('calfin:save',save);
+ const ai=createAIService({directory:app.getPath('userData'),safeStorage,confirm:async p=>{const choice=await dialog.showMessageBox(window,{type:'question',buttons:['Cancelar','Autorizar este análisis'],defaultId:0,cancelId:0,message:'Enviar resumen financiero a '+p.provider+' · '+p.model,detail:'Se envían solo cifras agregadas y calidad de datos, sin nombres, contratos, notas, logos ni firmas. El proveedor conoce tu cuenta y aplica sus condiciones de tratamiento y cobro. No hay anonimato garantizado. Máximo de salida: 1500 tokens; sin reintentos automáticos. Resumen exacto:\n\n'+JSON.stringify(p.summary,null,2)});return choice.response===1;}});
+ handle('calfin:ai-status',()=>ai.status());handle('calfin:ai-configure',x=>ai.configure(x));handle('calfin:ai-forget',()=>ai.forget());handle('calfin:ai-prepare',(w,i)=>{valid(w);return ai.prepare(w,i);});handle('calfin:ai-analyze',x=>ai.analyze(x));handle('calfin:ai-cancel',()=>ai.cancel());
  handle('calfin:import',async()=>{const pick=await dialog.showOpenDialog(window,{properties:['openFile'],filters:[{name:'Respaldo Calfin',extensions:['calfin','json']}]});return pick.canceled?null:read(pick.filePaths[0]);});
  handle('calfin:export',async data=>{const raw=valid(data),pick=await dialog.showSaveDialog(window,{defaultPath:'business-calfin.calfin',filters:[{name:'Respaldo Calfin',extensions:['calfin']}]});if(!pick.canceled){await fs.writeFile(pick.filePath,raw,{encoding:'utf8',mode:0o600});return true;}return false;});
  handle('calfin:csv',async text=>{if(typeof text!=='string'||Buffer.byteLength(text)>MAX)throw new Error('Contenido de exportación no válido');const pick=await dialog.showSaveDialog(window,{defaultPath:'business-calfin-resultados.csv',filters:[{name:'Tabla CSV',extensions:['csv']}]});if(!pick.canceled){await fs.writeFile(pick.filePath,text,'utf8');return true;}return false;});

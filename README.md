@@ -1,5 +1,7 @@
 # Business Calfin
 
+> **Source update 0.2.0 (staged development).** Optional user-funded AI and dated reports are described in [AI.md](docs/AI.md). The latest downloadable installer is still 0.1.0, unsigned, and does not include these additions. No new installer is published until code signing is verified. Logos, dashboard layout customization and up to three report signatories remain the next stage.
+
 **Pricing and financial clarity for entrepreneurs. Local-first. MIT.**
 
 Business Calfin helps small businesses, brands and tech founders understand what they sell, what each sale contributes, what the operation earns and how much cash remains. The interface and practical guide are in Spanish.

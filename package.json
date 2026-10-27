@@ -1,6 +1,6 @@
 {
   "name": "business-calfin",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Local-first pricing and financial clarity for entrepreneurs. No telemetry.",
   "author": "jufevelez",
   "license": "MIT",
@@ -10,10 +10,11 @@
   "scripts": {
     "prepare:assets": "node scripts/assets.cjs",
     "start": "npm run prepare:assets && electron .",
-    "test": "node --test tests/engine.test.cjs",
+    "test": "node --test tests/engine.test.cjs tests/report-stamp.test.cjs tests/ai.test.cjs",
     "test:browser": "node tests/browser.cjs",
     "test:decimal": "python3 tests/check_decimal.py",
     "dist:win": "npm run prepare:assets && electron-builder --win nsis --x64 --publish never",
+    "test:extensions": "node tests/browser-extensions.cjs",
     "checksums": "node scripts/checksums.cjs"
   },
   "devDependencies": {"electron":"45.0.0","electron-builder":"26.18.0","playwright":"1.64.1"},
@@ -24,6 +25,7 @@
     "directories":{"output":"dist"},
     "files":["src/**/*","desktop/**/*","assets/icon.png","LICENSE","package.json"],
     "asar":true,
+    "forceCodeSigning":true,
     "win":{"target":[{"target":"nsis","arch":["x64"]}],"icon":"assets/icon.ico","signAndEditExecutable":true},
     "nsis":{"oneClick":false,"perMachine":false,"allowElevation":false,"allowToChangeInstallationDirectory":true,"createDesktopShortcut":true,"deleteAppDataOnUninstall":false,"installerIcon":"assets/icon.ico","uninstallerIcon":"assets/icon.ico"}
   }
