@@ -1,0 +1,45 @@
+name: Verify source without publishing installers
+on:
+  push:
+    branches: [main]
+    paths: ['src/**', 'desktop/**', 'tests/**', 'package*.json', 'docs/**', '.github/workflows/verify-source.yml']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      # bootstrap-start
+      - name: Apply checksum-verified source update
+        if: hashFiles('.github/source-update/part0.br') != ''
+        run: node .github/apply-source-update.cjs
+      # bootstrap-end
+      - name: Install locked development tools
+        run: npm ci --no-audit --no-fund
+      - name: Financial, report timestamp and AI privacy tests
+        run: npm test
+      - name: Independent monetary verification
+        run: python tests/check_decimal.py
+      - name: Install browser for tests
+        run: npx playwright install --with-deps chromium
+      - name: Existing application regressions
+        run: npm run test:browser
+      - name: Consent, stale analysis and PDF tests with mocked AI
+        run: npm run test:extensions
+      # bootstrap-start
+      - name: Commit only tested source and remove staging payload
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && hashFiles('.github/source-update/part0.br') != ''
+        run: node .github/publish-source.cjs
+      # bootstrap-end
