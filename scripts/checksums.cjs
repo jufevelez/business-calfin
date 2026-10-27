@@ -1,0 +1,2 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');const dir=path.join(__dirname,'../dist');const names=fs.readdirSync(dir).filter(x=>/\.exe$/.test(x));if(!names.length)throw Error('No installer found');fs.writeFileSync(path.join(dir,'SHA256SUMS.txt'),names.map(n=>crypto.createHash('sha256').update(fs.readFileSync(path.join(dir,n))).digest('hex')+'  '+n).join('\n')+'\n');

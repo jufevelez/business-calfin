@@ -1,1 +1,16 @@
 node_modules/
+dist/
+.artifacts/
+.browsers/
+.test-state/
+.build-cache/
+assets/icon.png
+assets/icon.ico
+*.calfin
+*.calfin.bak
+*.calfin.tmp
+.env
+.env.*
+.DS_Store
+Thumbs.db
+__pycache__/
